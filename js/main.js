@@ -266,6 +266,27 @@ let musicStarted = false;
 // seguinte arranca sempre no nível em que a anterior ia, não do zero).
 let musicVolumeNow = MUSIC_VOLUME;
 let musicFadeRaf = null;
+// No iPhone (não no iPad) o Safari ignora DE PROPÓSITO o .volume de qualquer
+// <audio>/<video> — fica sempre preso ao volume físico do aparelho, e nada
+// em JS o consegue baixar (decisão da própria Apple, para o utilizador nunca
+// perder o controlo do volume do telemóvel a uma página web). A única forma
+// de controlar mesmo o nível de saída, mesmo no iPhone, é passar o áudio
+// por um nó de ganho da Web Audio API em vez de mexer no .volume do
+// elemento — daí musicAudioCtx/musicGainNode abaixo.
+let musicAudioCtx = null;
+let musicGainNode = null;
+function ensureMusicAudioGraph() {
+  if (musicAudioCtx) {
+    if (musicAudioCtx.state === "suspended") musicAudioCtx.resume().catch(() => {});
+    return;
+  }
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return; // browser muito antigo sem Web Audio — cai no .volume normal
+  musicAudioCtx = new Ctx();
+  musicGainNode = musicAudioCtx.createGain();
+  musicGainNode.gain.value = musicVolumeNow;
+  musicGainNode.connect(musicAudioCtx.destination);
+}
 function fadeMusicVolume(target, duration) {
   if (musicFadeRaf) cancelAnimationFrame(musicFadeRaf);
   // Em mobile (sobretudo iOS Safari, mas também visto no Chrome Android) o
@@ -283,23 +304,32 @@ function fadeMusicVolume(target, duration) {
     // Clamp a 0-1 de propósito: com fades que se interrompem uns aos outros
     // a meio (ver cancelAnimationFrame acima, e musicVolumeNow que sobrevive
     // entre eles), um desvio de vírgula flutuante minúsculo já foi visto a
-    // deixar isto ligeiríssimamente negativo — e o setter de .volume rejeita
-    // (lança IndexSizeError) qualquer valor fora de [0,1], o que quebrava a
+    // deixar isto ligeiríssimamente negativo — e tanto o .volume como o
+    // .gain.value rejeitam valores fora de [0,1]/negativos, o que quebrava a
     // música em definitivo daí em diante (todas as chamadas seguintes liam
     // esse valor corrompido como ponto de partida).
     musicVolumeNow = Math.min(1, Math.max(0, start + (target - start) * t));
-    if (musicAudio) musicAudio.volume = musicVolumeNow;
+    if (musicGainNode) musicGainNode.gain.value = musicVolumeNow;
+    else if (musicAudio) musicAudio.volume = musicVolumeNow;
     musicFadeRaf = t < 1 ? requestAnimationFrame(step) : null;
   })(startTime);
 }
 function playCurrentTrack() {
   musicAudio = new Audio(ASSETS.musica[musicIdx]);
-  musicAudio.volume = musicVolumeNow;
   musicAudio.muted = state.musicMuted;
   musicAudio.addEventListener("ended", () => {
     musicIdx = (musicIdx + 1) % ASSETS.musica.length;
     playCurrentTrack();
   });
+  ensureMusicAudioGraph();
+  if (musicAudioCtx) {
+    // Liga o elemento ao nó de ganho — a partir daqui o som só sai por
+    // aqui (o próprio elemento deixa de tocar em paralelo), por isso o seu
+    // .volume fica sempre a 1 e quem manda a sério é o musicGainNode.
+    musicAudioCtx.createMediaElementSource(musicAudio).connect(musicGainNode);
+  } else {
+    musicAudio.volume = musicVolumeNow;
+  }
   musicAudio.play().catch(() => {});
 }
 function startMusicOnce() {
