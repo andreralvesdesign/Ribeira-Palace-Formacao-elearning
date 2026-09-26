@@ -246,11 +246,17 @@ function updateMuteIcon() {
 // curso, incluindo a capa e o menu, sem cortar entre ecrãs. Só arranca no
 // primeiro clique do formando, porque os browsers bloqueiam áudio com som
 // antes de uma interação — a escolha de idioma é sempre o primeiro clique.
-const MUSIC_VOLUME = 0.04275;
+// Em ecrãs táteis (telemóvel/tablet) o mesmo volume linear soa muito mais
+// alto do que em computador — colunas pequenas costumam aplicar a sua
+// própria compensação/equalização agressiva. Deteta-se por (pointer: coarse)
+// em vez de sniffing de user-agent (mesmo critério já usado para desligar o
+// :hover preso em toque — ver style.css).
+const IS_TOUCH_DEVICE = matchMedia("(pointer: coarse)").matches;
+const MUSIC_VOLUME = IS_TOUCH_DEVICE ? 0.04275 * 0.6 : 0.04275;
 // Enquanto se escolhe uma resposta, a música baixa bastante (quase inaudível)
 // para dar destaque à tensão do "sfx_suspense_perguntas" — ver renderOptionsScreen
 // (duck) e showFeedback (volta ao nível normal assim que se responde.
-const MUSIC_VOLUME_DUCKED = 0.0247;
+const MUSIC_VOLUME_DUCKED = IS_TOUCH_DEVICE ? 0.0247 * 0.6 : 0.0247;
 let musicAudio = null;
 let musicIdx = 0;
 let musicStarted = false;
