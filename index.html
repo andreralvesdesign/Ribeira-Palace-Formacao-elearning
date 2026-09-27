@@ -2,16 +2,84 @@
 <html lang="pt-PT">
 <head>
 <meta charset="UTF-8">
-<!-- O ficheiro principal chama-se "ribeira_palace_formacao_elearning.html"
-     (sem espaços, maiúsculas, acentos ou hífenes, para evitar problemas em
-     URLs/servidores). Este index.html fica só como redirecionamento
-     automático, para o link da pasta continuar a funcionar em qualquer
-     servidor/alojamento estático que espera sempre um "index.html". -->
-<meta http-equiv="refresh" content="0; url=./ribeira_palace_formacao_elearning.html">
-<link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Ribeira Palace · Formação e-learning</title>
+<link rel="icon" type="image/x-icon" href="favicon/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<p>A abrir a formação... se nada acontecer, <a href="./ribeira_palace_formacao_elearning.html">clica aqui</a>.</p>
+
+<main id="app">
+  <div class="screen">
+    <div class="stage" id="stage">
+
+      <img class="topbar-frame" hidden src="assets/layout_barra_superior/final/layout_barra_superior.png" alt="">
+
+      <div class="stage-topbar" hidden id="stageTopbar">
+        <div class="topbar-brand">
+          <div class="topbar-brand-mark">
+            <img class="brand-logo" src="assets/logotipo_tipografia_ribeira_palace/simbolo/logotipo_ribeira_palace.png" alt="">
+            <span class="brand-name">RIBEIRA PALACE</span>
+          </div>
+          <span class="topbar-divider"></span>
+          <span class="brand-tagline">Formação e-learning</span>
+        </div>
+        <div class="topbar-center">
+          <div class="topbar-progress" id="topbarProgress"></div>
+        </div>
+        <div class="topbar-icons">
+          <button class="icon-btn sfx-hover pulse-attention" id="btnFullscreen" title="Ecrã inteiro" aria-label="Alternar ecrã inteiro">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9"/>
+              <path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9"/>
+              <path d="M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15"/>
+              <path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/>
+            </svg>
+          </button>
+          <button class="icon-btn sfx-hover" id="btnMute" title="Som" aria-label="Ligar/desligar som">
+            <svg id="iconSound" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M4.5 9.5v5h3.3l4.7 4V5.5l-4.7 4H4.5z"/>
+              <g id="waveLines" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                <path d="M15.8 9a4.2 4.2 0 0 1 0 6"/>
+                <path d="M18.2 6.7a7.6 7.6 0 0 1 0 10.6"/>
+              </g>
+              <g id="muteLines" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="display:none">
+                <path d="M15.5 9.5l4.5 4.5"/>
+                <path d="M20 9.5l-4.5 4.5"/>
+              </g>
+            </svg>
+          </button>
+          <button class="icon-btn sfx-hover" id="btnMusicMute" title="Música" aria-label="Ligar/desligar música">
+            <svg id="iconMusic" viewBox="0 0 24 24">
+              <circle cx="7.3" cy="17.3" r="2.6" fill="currentColor"/>
+              <circle cx="17" cy="15.3" r="2.6" fill="currentColor"/>
+              <path d="M9.9 17.3V6.3L18 4.6v10.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path id="musicMuteSlash" d="M4.5 4.5l15 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="display:none"/>
+            </svg>
+          </button>
+          <button class="icon-btn sfx-hover" id="btnLang" title="Idioma" aria-label="Mudar idioma">
+            <img id="iconLangFlag" src="" alt="">
+          </button>
+          <button class="icon-btn sfx-hover" id="btnExit" title="Sair" aria-label="Sair do curso">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13.5 4.5H18a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-4.5"/>
+              <path d="M3.5 12h11.2"/>
+              <path d="M11 8.2l3.8 3.8-3.8 3.8"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="stage-content" id="stageContent"></div>
+
+    </div>
+  </div>
+</main>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
