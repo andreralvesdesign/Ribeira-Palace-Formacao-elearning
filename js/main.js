@@ -1322,6 +1322,9 @@ function renderFinal(opts) {
   parallaxEl = stageContent.querySelector(".bg-parallax");
   // Botão ligado antes do som, mesma razão das outras funções acima.
   document.getElementById("btnTerminar").addEventListener("click", () => {
+    // Abre o portfólio numa nova aba — o curso continua a reiniciar
+    // normalmente nesta, para o próximo formando.
+    window.open("https://andrealvesdesign.com", "_blank");
     stopFala();
     state.completed.clear();
     saveProgress();
