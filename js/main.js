@@ -101,16 +101,10 @@ function saveProgress() {
 
 // ---------------- ÁUDIO ----------------
 
-// Volumes mais baixos para sons que tocam muito repetidamente (hover) — os
-// restantes ficam ao volume normal (1).
-const SFX_VOLUME = { hover: 0.25, tel1: 0.35, tel2: 0.35, email: 0.35, correta: 0.35, errada: 0.35, suspense: 0.35 };
-
 const audioCache = {};
 function getAudio(key) {
   if (!audioCache[key]) {
-    const a = new Audio(ASSETS.sfx[key]);
-    a.volume = SFX_VOLUME[key] ?? 1;
-    audioCache[key] = a;
+    audioCache[key] = new Audio(ASSETS.sfx[key]);
   }
   return audioCache[key];
 }
@@ -153,7 +147,6 @@ function playOnce(key) {
 // para os dois poderem tocar ao mesmo tempo, ex.: o telefone a tocar por
 // cima do ambiente da receção. Troca sozinho consoante o fundo da cena
 // atual (ver setAmbient, chamado em cada ecrã/beat).
-const AMBIENT_VOLUME = 0.25;
 let ambientAudio = null;
 let ambientKey = null;
 function setAmbient(key) {
@@ -171,7 +164,6 @@ function setAmbient(key) {
   const src = key === "receção" ? ASSETS.sfx.ambienteInterior : ASSETS.sfx.ambienteExterior;
   const a = new Audio(src);
   a.loop = true;
-  a.volume = AMBIENT_VOLUME;
   a.muted = state.muted;
   a.play().catch(() => {});
   ambientAudio = a;
@@ -246,17 +238,19 @@ function updateMuteIcon() {
 // curso, incluindo a capa e o menu, sem cortar entre ecrãs. Só arranca no
 // primeiro clique do formando, porque os browsers bloqueiam áudio com som
 // antes de uma interação — a escolha de idioma é sempre o primeiro clique.
-// Em ecrãs táteis (telemóvel/tablet) o mesmo volume linear soa muito mais
-// alto do que em computador — colunas pequenas costumam aplicar a sua
-// própria compensação/equalização agressiva. Deteta-se por (pointer: coarse)
-// em vez de sniffing de user-agent (mesmo critério já usado para desligar o
-// :hover preso em toque — ver style.css).
-const IS_TOUCH_DEVICE = matchMedia("(pointer: coarse)").matches;
-const MUSIC_VOLUME = IS_TOUCH_DEVICE ? 0.04275 * 0.6 : 0.04275;
+//
+// O nível de repouso já vem baixo DE PROPÓSITO desde os próprios ficheiros
+// mp3 (mistura feita no Audition, ~-27dB), já não daqui — porque o iPhone
+// ignora .volume em JS (ver conversa). Por isso o "volume" daqui é 1 (não
+// atenua nada) e só o duck das perguntas continua a ser feito aqui, como
+// fração relativa a esse nível de repouso já embutido no ficheiro.
+const MUSIC_VOLUME = 1;
 // Enquanto se escolhe uma resposta, a música baixa bastante (quase inaudível)
 // para dar destaque à tensão do "sfx_suspense_perguntas" — ver renderOptionsScreen
-// (duck) e showFeedback (volta ao nível normal assim que se responde.
-const MUSIC_VOLUME_DUCKED = IS_TOUCH_DEVICE ? 0.0247 * 0.6 : 0.0247;
+// (duck) e showFeedback (volta ao nível normal assim que se responde. Mesma
+// proporção de antes (0.0247/0.04275 ≈ -4.8dB abaixo do repouso), só que
+// agora relativa a MUSIC_VOLUME=1 em vez de 0.04275.
+const MUSIC_VOLUME_DUCKED = 0.5778;
 let musicAudio = null;
 let musicIdx = 0;
 let musicStarted = false;
@@ -266,27 +260,6 @@ let musicStarted = false;
 // seguinte arranca sempre no nível em que a anterior ia, não do zero).
 let musicVolumeNow = MUSIC_VOLUME;
 let musicFadeRaf = null;
-// No iPhone (não no iPad) o Safari ignora DE PROPÓSITO o .volume de qualquer
-// <audio>/<video> — fica sempre preso ao volume físico do aparelho, e nada
-// em JS o consegue baixar (decisão da própria Apple, para o utilizador nunca
-// perder o controlo do volume do telemóvel a uma página web). A única forma
-// de controlar mesmo o nível de saída, mesmo no iPhone, é passar o áudio
-// por um nó de ganho da Web Audio API em vez de mexer no .volume do
-// elemento — daí musicAudioCtx/musicGainNode abaixo.
-let musicAudioCtx = null;
-let musicGainNode = null;
-function ensureMusicAudioGraph() {
-  if (musicAudioCtx) {
-    if (musicAudioCtx.state === "suspended") musicAudioCtx.resume().catch(() => {});
-    return;
-  }
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) return; // browser muito antigo sem Web Audio — cai no .volume normal
-  musicAudioCtx = new Ctx();
-  musicGainNode = musicAudioCtx.createGain();
-  musicGainNode.gain.value = musicVolumeNow;
-  musicGainNode.connect(musicAudioCtx.destination);
-}
 function fadeMusicVolume(target, duration) {
   if (musicFadeRaf) cancelAnimationFrame(musicFadeRaf);
   // Em mobile (sobretudo iOS Safari, mas também visto no Chrome Android) o
@@ -304,32 +277,23 @@ function fadeMusicVolume(target, duration) {
     // Clamp a 0-1 de propósito: com fades que se interrompem uns aos outros
     // a meio (ver cancelAnimationFrame acima, e musicVolumeNow que sobrevive
     // entre eles), um desvio de vírgula flutuante minúsculo já foi visto a
-    // deixar isto ligeiríssimamente negativo — e tanto o .volume como o
-    // .gain.value rejeitam valores fora de [0,1]/negativos, o que quebrava a
+    // deixar isto ligeiríssimamente negativo — e o setter de .volume rejeita
+    // (lança IndexSizeError) qualquer valor fora de [0,1], o que quebrava a
     // música em definitivo daí em diante (todas as chamadas seguintes liam
     // esse valor corrompido como ponto de partida).
     musicVolumeNow = Math.min(1, Math.max(0, start + (target - start) * t));
-    if (musicGainNode) musicGainNode.gain.value = musicVolumeNow;
-    else if (musicAudio) musicAudio.volume = musicVolumeNow;
+    if (musicAudio) musicAudio.volume = musicVolumeNow;
     musicFadeRaf = t < 1 ? requestAnimationFrame(step) : null;
   })(startTime);
 }
 function playCurrentTrack() {
   musicAudio = new Audio(ASSETS.musica[musicIdx]);
+  musicAudio.volume = musicVolumeNow;
   musicAudio.muted = state.musicMuted;
   musicAudio.addEventListener("ended", () => {
     musicIdx = (musicIdx + 1) % ASSETS.musica.length;
     playCurrentTrack();
   });
-  ensureMusicAudioGraph();
-  if (musicAudioCtx) {
-    // Liga o elemento ao nó de ganho — a partir daqui o som só sai por
-    // aqui (o próprio elemento deixa de tocar em paralelo), por isso o seu
-    // .volume fica sempre a 1 e quem manda a sério é o musicGainNode.
-    musicAudioCtx.createMediaElementSource(musicAudio).connect(musicGainNode);
-  } else {
-    musicAudio.volume = musicVolumeNow;
-  }
   musicAudio.play().catch(() => {});
 }
 function startMusicOnce() {
